@@ -1,0 +1,6 @@
+{
+  "name": "SentiSocial AI - Social Sentiment & Trend Radar",
+  "description": "Herramienta inteligente de recopilación y análisis de sentimiento con IA para TikTok, Instagram y Facebook con gráficos interactivos, reportes ejecutivos y exportación PDF/Excel/CSV.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
