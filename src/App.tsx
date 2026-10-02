@@ -14,6 +14,7 @@ import { CommentDetailModal } from './components/CommentDetailModal';
 import { ImportModal } from './components/ImportModal';
 import { ExportModal } from './components/ExportModal';
 import { SocialIntegrationsModal } from './components/SocialIntegrationsModal';
+import { TrendHeatmap } from './components/TrendHeatmap';
 import { initialComments, sampleLiveFeedPool } from './utils/mockPresets';
 import {
   AnalysisSummary,
@@ -32,6 +33,7 @@ export default function App() {
   const [comments, setComments] = useState<SocialComment[]>(initialComments);
   const [activeExtractedPost, setActiveExtractedPost] = useState<any | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(true);
+  const [activeView, setActiveView] = useState<'dashboard' | 'heatmap'>('dashboard');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [keywordFilter, setKeywordFilter] = useState<string | undefined>(undefined);
 
@@ -262,6 +264,28 @@ export default function App() {
     setLiveToast('Se han restaurado los comentarios de ejemplo de prueba.');
   };
 
+  // Analyze comments from Trend Heatmap
+  const handleAnalyzeTrendComments = (
+    trendComments: SocialComment[],
+    trendName: string,
+    summary?: any,
+    postInfo?: any
+  ) => {
+    setComments(trendComments);
+    setSelectedPlatform('all');
+    setKeywordFilter(undefined);
+    setActiveExtractedPost(postInfo || {
+      author: trendName.replace('#', ''),
+      authorHandle: trendName,
+      caption: `Tendencia viral seleccionada en Trend Heatmap: ${trendName}`,
+      platform: trendComments[0]?.platform || 'tiktok',
+      likesCount: 185000,
+      commentsCount: trendComments.length,
+    });
+    setActiveView('dashboard');
+    setLiveToast(`✓ Se recopilaron ${trendComments.length} comentarios reales de la tendencia ${trendName}.`);
+  };
+
   // Live Stream Simulator Effect
   useEffect(() => {
     if (!connections.liveListenerActive) return;
@@ -306,6 +330,8 @@ export default function App() {
         }
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
+        activeView={activeView}
+        onViewChange={setActiveView}
       />
 
       {/* Live Stream Floating Toast Notification */}
@@ -325,126 +351,176 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
         
-        {/* Active Post / Search Filter Banner */}
-        {activeExtractedPost && (
-          <div className="mb-4 p-4 rounded-3xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-pink-500/10 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
-            <div className="flex items-center gap-3">
-              {activeExtractedPost.authorAvatar ? (
-                <img
-                  src={activeExtractedPost.authorAvatar}
-                  alt={activeExtractedPost.author}
-                  className="w-12 h-12 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-xs shrink-0"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
-                  {activeExtractedPost.author?.slice(0, 2).toUpperCase() || 'IG'}
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-extrabold text-sm text-slate-900 dark:text-white">
-                    {activeExtractedPost.authorHandle || `@${activeExtractedPost.author}`}
-                  </span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Búsqueda actual: {comments.length} comentarios reales
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                    Ejemplos anteriores eliminados
-                  </span>
-                </div>
-                {activeExtractedPost.caption && (
-                  <p className="text-xs text-slate-600 dark:text-slate-300 truncate mt-0.5 max-w-2xl">
-                    "{activeExtractedPost.caption}"
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-              {activeExtractedPost.url && (
-                <a
-                  href={activeExtractedPost.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  title="Abrir post original"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              )}
+        {/* VIEW 1: TREND HEATMAP (TOP 10 BY COUNTRY & TOPIC) */}
+        {activeView === 'heatmap' ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between pb-1">
               <button
-                onClick={() => setIsImportOpen(true)}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all cursor-pointer shadow-2xs"
+                onClick={() => setActiveView('dashboard')}
+                className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
-                Buscar otra publicación
-              </button>
-              <button
-                onClick={handleClearAllComments}
-                className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/40 transition-all cursor-pointer"
-                title="Limpiar comentarios"
-              >
-                Limpiar
+                ← Volver al Análisis de Comentarios
               </button>
             </div>
+            <TrendHeatmap
+              onAnalyzeTrendComments={handleAnalyzeTrendComments}
+              currentLanguage={currentLanguage}
+            />
           </div>
+        ) : (
+          <>
+            {/* Quick Banner to Trend Heatmap */}
+            <div className="mb-4 p-3.5 rounded-2xl bg-gradient-to-r from-orange-500/15 via-rose-500/15 to-purple-500/15 border border-orange-200/80 dark:border-orange-800/60 flex items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                  <span className="text-base">🔥</span>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+                      Trend Heatmap · Top 10 Tendencias en Vivo
+                    </span>
+                    <span className="hidden sm:inline-block px-2 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white uppercase tracking-wider">
+                      Nuevo
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
+                    Filtra por país (México, España, Argentina, EE.UU...) o tópico para ver el mapa de calor 24h.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setActiveView('heatmap')}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer shrink-0 shadow-xs flex items-center gap-1"
+              >
+                <span>Explorar Heatmap</span>
+                <span>→</span>
+              </button>
+            </div>
+
+            {/* Active Post / Search Filter Banner */}
+            {activeExtractedPost && (
+              <div className="mb-4 p-4 rounded-3xl bg-gradient-to-r from-purple-500/10 via-indigo-500/10 to-pink-500/10 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in">
+                <div className="flex items-center gap-3">
+                  {activeExtractedPost.authorAvatar ? (
+                    <img
+                      src={activeExtractedPost.authorAvatar}
+                      alt={activeExtractedPost.author}
+                      className="w-12 h-12 rounded-2xl object-cover border-2 border-indigo-500/40 shadow-xs shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-500 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
+                      {activeExtractedPost.author?.slice(0, 2).toUpperCase() || 'IG'}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-extrabold text-sm text-slate-900 dark:text-white">
+                        {activeExtractedPost.authorHandle || `@${activeExtractedPost.author}`}
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Búsqueda actual: {comments.length} comentarios reales
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        Ejemplos anteriores eliminados
+                      </span>
+                    </div>
+                    {activeExtractedPost.caption && (
+                      <p className="text-xs text-slate-600 dark:text-slate-300 truncate mt-0.5 max-w-2xl">
+                        "{activeExtractedPost.caption}"
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                  {activeExtractedPost.url && (
+                    <a
+                      href={activeExtractedPost.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      title="Abrir post original"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setIsImportOpen(true)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all cursor-pointer shadow-2xs"
+                  >
+                    Buscar otra publicación
+                  </button>
+                  <button
+                    onClick={handleClearAllComments}
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200/80 dark:border-rose-900/40 transition-all cursor-pointer"
+                    title="Limpiar comentarios"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Platform Selector Filter Bar */}
+            <PlatformFilterBar
+              selectedPlatform={selectedPlatform}
+              onSelectPlatform={(p) => {
+                setSelectedPlatform(p);
+                setKeywordFilter(undefined);
+              }}
+              counts={platformCounts}
+              labels={{
+                all: t.allPlatforms,
+                tiktok: t.tiktok,
+                instagram: t.instagram,
+                facebook: t.facebook,
+              }}
+            />
+
+            {/* Hero KPI Cards */}
+            <KpiHero
+              summary={summary}
+              dominantEmotion={dominantEmotion}
+              criticalCount={criticalCount}
+              currentLanguage={currentLanguage}
+            />
+
+            {/* AI Executive Intelligence Card */}
+            <AiExecutiveInsights
+              summary={summary}
+              currentLanguage={currentLanguage}
+              onRegenerate={handleRunAnalysis}
+              isAnalyzing={isAnalyzing}
+            />
+
+            {/* Interactive Charts & Visual Trends */}
+            <AnalyticsCharts
+              comments={comments}
+              summary={summary}
+              currentLanguage={currentLanguage}
+              onFilterByKeyword={(kw) => setKeywordFilter(kw)}
+            />
+
+            {/* Interactive Comments Table & Feed Manager */}
+            <CommentsTable
+              comments={comments}
+              currentLanguage={currentLanguage}
+              selectedPlatform={selectedPlatform}
+              onSelectPlatform={setSelectedPlatform}
+              onOpenCommentDetail={(c) => setDetailComment(c)}
+              onToggleStar={handleToggleStar}
+              onDeleteComment={handleDeleteComment}
+              keywordFilter={keywordFilter}
+              onClearKeywordFilter={() => setKeywordFilter(undefined)}
+              onClearAll={handleClearAllComments}
+              onRestoreSamples={handleRestoreSampleComments}
+              onOpenImport={() => setIsImportOpen(true)}
+            />
+          </>
         )}
-
-        {/* Platform Selector Filter Bar */}
-        <PlatformFilterBar
-          selectedPlatform={selectedPlatform}
-          onSelectPlatform={(p) => {
-            setSelectedPlatform(p);
-            setKeywordFilter(undefined);
-          }}
-          counts={platformCounts}
-          labels={{
-            all: t.allPlatforms,
-            tiktok: t.tiktok,
-            instagram: t.instagram,
-            facebook: t.facebook,
-          }}
-        />
-
-        {/* Hero KPI Cards */}
-        <KpiHero
-          summary={summary}
-          dominantEmotion={dominantEmotion}
-          criticalCount={criticalCount}
-          currentLanguage={currentLanguage}
-        />
-
-        {/* AI Executive Intelligence Card */}
-        <AiExecutiveInsights
-          summary={summary}
-          currentLanguage={currentLanguage}
-          onRegenerate={handleRunAnalysis}
-          isAnalyzing={isAnalyzing}
-        />
-
-        {/* Interactive Charts & Visual Trends */}
-        <AnalyticsCharts
-          comments={comments}
-          summary={summary}
-          currentLanguage={currentLanguage}
-          onFilterByKeyword={(kw) => setKeywordFilter(kw)}
-        />
-
-        {/* Interactive Comments Table & Feed Manager */}
-        <CommentsTable
-          comments={comments}
-          currentLanguage={currentLanguage}
-          selectedPlatform={selectedPlatform}
-          onSelectPlatform={setSelectedPlatform}
-          onOpenCommentDetail={(c) => setDetailComment(c)}
-          onToggleStar={handleToggleStar}
-          onDeleteComment={handleDeleteComment}
-          keywordFilter={keywordFilter}
-          onClearKeywordFilter={() => setKeywordFilter(undefined)}
-          onClearAll={handleClearAllComments}
-          onRestoreSamples={handleRestoreSampleComments}
-          onOpenImport={() => setIsImportOpen(true)}
-        />
 
       </main>
 

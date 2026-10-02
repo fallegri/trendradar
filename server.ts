@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI, Type } from '@google/genai';
+import { getTop10TrendsFor } from './src/services/trendData';
 
 dotenv.config();
 
@@ -1828,6 +1829,78 @@ Keep it concise, authentic to the platform, with appropriate emojis. Return only
     console.error('Error generating reply:', err);
     res.json({
       reply: '¡Muchas gracias por dejarnos tu comentario! Apreciamos mucho tu feedback.',
+    });
+  }
+});
+
+// GET /api/trend-heatmap - Return top 10 trends for country and topic
+app.get('/api/trend-heatmap', (req, res) => {
+  const country = (req.query.country as string) || 'global';
+  const topic = (req.query.topic as string) || 'all';
+  const timeframe = (req.query.timeframe as string) || '24h';
+  const platform = (req.query.platform as string) || 'all';
+
+  try {
+    const data = getTop10TrendsFor(country as any, topic as any, timeframe, platform as any);
+    res.json({ success: true, ...data });
+  } catch (err: any) {
+    console.error('Error fetching trend heatmap:', err);
+    res.status(500).json({ error: 'Error al generar mapa de calor de tendencias.' });
+  }
+});
+
+// POST /api/trend-generate-script - Generate viral content hook & angle for a trend
+app.post('/api/trend-generate-script', async (req, res) => {
+  const { trendName, topic, countryLabel, platform = 'tiktok', language = 'es' } = req.body;
+
+  if (!ai) {
+    return res.json({
+      success: true,
+      hook: `¿Ya viste lo que está pasando con ${trendName}? 🔥 Aquí te cuento en 30 segundos.`,
+      body: `Esta tendencia se ha vuelto viral en ${countryLabel || 'redes'} porque toca exactamente lo que todos estábamos pensando. El debate central gira en torno a cómo afecta a la comunidad y las opiniones encontradas.`,
+      cta: `¿Tú qué opinas de ${trendName}? Déjamelo en los comentarios 👇`,
+    });
+  }
+
+  try {
+    const prompt = `You are an elite viral content strategist for TikTok & Instagram Reels.
+Trend: ${trendName}
+Topic: ${topic}
+Target Audience / Country: ${countryLabel}
+Target Platform: ${platform}
+Language: ${language}
+
+Generate a high-converting, viral short-form video script for a creator/brand wanting to leverage this trend right now.
+Return strictly JSON:
+{
+  "hook": "Strong 3-second visual + verbal hook",
+  "body": "3 to 4 punchy sentences delivering insight, humor, or value without fluff",
+  "cta": "Engaging call to action to spark comment debate",
+  "recommendedHashtags": ["tag1", "tag2", "tag3"],
+  "bestPostingHour": "e.g. 19:30"
+}`;
+
+    const response = await withTimeout(
+      ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      }),
+      4000,
+      'Script generation timeout'
+    );
+
+    const parsed = JSON.parse(response.text || '{}');
+    res.json({ success: true, ...parsed });
+  } catch (err: any) {
+    console.error('Error generating trend script:', err);
+    res.json({
+      success: true,
+      hook: `¿Ya viste lo que está pasando con ${trendName}? 🔥 Aquí te cuento en 30 segundos.`,
+      body: `Esta tendencia se ha vuelto viral en ${countryLabel || 'redes'} porque toca exactamente lo que todos estábamos pensando. El debate central gira en torno a cómo afecta a la comunidad y las opiniones encontradas.`,
+      cta: `¿Tú qué opinas de ${trendName}? Déjamelo en los comentarios 👇`,
+      recommendedHashtags: [trendName, 'viral', 'tendencias', topic || 'socialmedia'],
+      bestPostingHour: '19:30',
     });
   }
 });

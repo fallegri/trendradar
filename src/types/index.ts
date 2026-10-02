@@ -127,3 +127,67 @@ export interface UserSocialCredentials {
     isValid?: boolean;
   };
 }
+
+export type CountryCode = 'global' | 'mx' | 'es' | 'ar' | 'co' | 'us' | 'cl' | 'pe' | 'br' | 'bo';
+
+export type TrendTopic =
+  | 'all'
+  | 'entertainment'
+  | 'tech'
+  | 'sports'
+  | 'fashion'
+  | 'food'
+  | 'business'
+  | 'music'
+  | 'lifestyle';
+
+export interface TrendItem {
+  id: string;
+  rank: number; // 1 to 10
+  name: string; // e.g. #ChampionsLeague
+  displayName: string;
+  topic: TrendTopic;
+  topicLabel: string;
+  country: CountryCode;
+  countryLabel: string;
+  countryFlag: string;
+  volumeFormatted: string;
+  volumeNumber: number;
+  velocityPercent: number; // e.g. +85%
+  heatScore: number; // 0 to 100
+  sentiment: {
+    positive: number;
+    neutral: number;
+    negative: number;
+    netScore: number;
+  };
+  topPlatforms: Array<{
+    platform: 'tiktok' | 'instagram' | 'facebook';
+    share: number; // percentage, e.g. 60
+  }>;
+  peakTimeLabel: string; // e.g. "19:00 - 22:00"
+  hourlyHeat: number[]; // 6 slots: [00-04, 04-08, 08-12, 12-16, 16-20, 20-24] (0-100 each)
+  contentAngle: string;
+  sampleComments: string[];
+  viralSound?: string;
+  realPostUrl?: string; // Real video or post URL for real comment extraction
+}
+
+export interface TrendHeatmapResponse {
+  country: CountryCode;
+  countryLabel: string;
+  countryFlag: string;
+  topic: TrendTopic;
+  topicLabel: string;
+  platform?: 'all' | 'tiktok' | 'instagram' | 'facebook';
+  timeframe: string;
+  lastUpdated: string;
+  top10Trends: TrendItem[];
+  kpis: {
+    topTrendName: string;
+    totalVolumeFormatted: string;
+    averageVelocity: number;
+    dominantSentiment: string;
+    netSentimentAverage: number;
+  };
+}

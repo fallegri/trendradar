@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { translations } from '../i18n/translations';
+import { Flame } from 'lucide-react';
 
 interface HeaderProps {
   currentLanguage: SupportedLanguage;
@@ -27,6 +28,8 @@ interface HeaderProps {
   onToggleLive: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
+  activeView?: 'dashboard' | 'heatmap';
+  onViewChange?: (view: 'dashboard' | 'heatmap') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -41,6 +44,8 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleLive,
   darkMode,
   onToggleDarkMode,
+  activeView = 'dashboard',
+  onViewChange,
 }) => {
   const t = translations[currentLanguage];
 
@@ -51,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Logo & Brand */}
           <div className="flex items-center gap-3">
-            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-600 shadow-md shadow-purple-500/20 text-white font-bold text-lg">
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 via-purple-600 to-indigo-600 shadow-md shadow-purple-500/20 text-white font-bold text-lg shrink-0">
               <Sparkles className="w-5 h-5 text-white animate-pulse" />
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-950 rounded-full"></div>
             </div>
@@ -70,8 +75,38 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
+          {/* Navigation View Switcher (Comentarios vs Trend Heatmap) */}
+          {onViewChange && (
+            <div className="flex items-center bg-slate-100 dark:bg-slate-900/90 p-1 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs font-bold">
+              <button
+                onClick={() => onViewChange('dashboard')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  activeView === 'dashboard'
+                    ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <span>📊 Comentarios</span>
+              </button>
+              <button
+                onClick={() => onViewChange('heatmap')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
+                  activeView === 'heatmap'
+                    ? 'bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Flame className={`w-3.5 h-3.5 ${activeView === 'heatmap' ? 'animate-bounce' : 'text-rose-500'}`} />
+                <span>Trend Heatmap</span>
+                <span className="px-1 py-0.2 rounded text-[9px] font-black uppercase bg-black/30 text-amber-200">
+                  Top 10
+                </span>
+              </button>
+            </div>
+          )}
+
           {/* Center Actions / Live Status */}
-          <div className="hidden lg:flex items-center gap-3 bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-full border border-slate-200 dark:border-slate-800">
+          <div className="hidden xl:flex items-center gap-3 bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-full border border-slate-200 dark:border-slate-800">
             <button
               onClick={onToggleLive}
               className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold transition-all shadow-sm ${
